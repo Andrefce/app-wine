@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Wine Quality Prediction Methods Comparison</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .method-selector {
+            margin-bottom: 20px;
+        }
+
+        .params-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .param-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .param-group label {
+            width: 150px;
+            font-size: 0.9em;
+        }
+
+        .param-group input {
+            flex: 1;
+        }
+
+        .param-value {
+            width: 60px;
+            margin-left: 10px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.active {
+            background-color: #0056b3;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            height: 400px;
+        }
+
+        .test-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .test-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+
+        .dataset-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Wine Quality Prediction Methods Comparison</h1>
+
+        <div class="dataset-info">
+            <h3>Dataset: Wine Quality (White Wine)</h3>
+            <p>Features: 11 physicochemical properties | Target: Wine quality score (0-10)</p>
+        </div>
+
+        <div class="method-selector">
+            <button onclick="selectMethod(event, 'batch')" class="active">Batch GD</button>
+            <button onclick="selectMethod(event, 'stochastic')">Stochastic GD</button>
+            <button onclick="selectMethod(event, 'mini-batch')">Mini-Batch GD</button>
+        </div>
+
+        <div class="params-section" id="gdParams">
+            <div>
+                <h3>Training Parameters</h3>
+                <div class="param-group">
+                    <label>Learning Rate:</label>
+                    <input type="range" id="learningRate" min="0.001" max="0.5" step="0.001" value="0.01">
+                    <span id="learningRateValue" class="param-value">0.01</span>
+                </div>
+                <div class="param-group">
+                    <label>Iterations:</label>
+                    <input type="range" id="iterations" min="100" max="2000" step="100" value="500">
+                    <span id="iterationsValue" class="param-value">500</span>
+                </div>
+                <div class="param-group" id="batchSizeGroup" style="display: none;">
+                    <label>Batch Size:</label>
+                    <input type="range" id="batchSize" min="8" max="64" step="8" value="16">
+                    <span id="batchSizeValue" class="param-value">16</span>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="train()" id="trainButton">Train Model</button>
+
+        <div class="chart-container">
+            <canvas id="costChart"></canvas>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Wine Quality Prediction (Pre-trained model)</h3>
+            <div class="test-inputs">
+                <div class="param-group">
+                    <label title="Range: 3.8-15.9">Fixed Acidity:</label>
+                    <input type="number" id="fixedAcidity" value="6.3" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0.08-1.10">Volatile Acidity:</label>
+                    <input type="number" id="volatileAcidity" value="0.30" step="0.01">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0-1.66">Citric Acid:</label>
+                    <input type="number" id="citricAcid" value="0.34" step="0.01">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0.6-65.8">Residual Sugar:</label>
+                    <input type="number" id="residualSugar" value="1.60" step="0.01">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0.009-0.346">Chlorides:</label>
+                    <input type="number" id="chlorides" value="0.049" step="0.001">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 2-289">Free Sulfur Dioxide:</label>
+                    <input type="number" id="freeSulfurDioxide" value="14.0" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 9-440">Total Sulfur Dioxide:</label>
+                    <input type="number" id="totalSulfurDioxide" value="132.0" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0.98711-1.03898">Density:</label>
+                    <input type="number" id="density" value="0.9940" step="0.0001">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 2.72-3.82">pH:</label>
+                    <input type="number" id="pH" value="3.30" step="0.01">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 0.22-1.08">Sulphates:</label>
+                    <input type="number" id="sulphates" value="0.49" step="0.01">
+                </div>
+                <div class="param-group">
+                    <label title="Range: 8.0-14.2">Alcohol:</label>
+                    <input type="number" id="alcohol" value="9.5" step="0.1">
+                </div>
+            </div>
+        </div>
+        <button onclick="predict()">Predict Quality</button>
+        <div class="results" id="predictions">
+            Predictions will appear here after training and testing.
+        </div>
+    </div>
+    </div>
+
+    <script>
+        let currentMethod = 'batch';
+        let costChart = null;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('costChart').getContext('2d');
+            costChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Cost (MSE)',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false, // Allow dynamic min value
+                            title: {
+                                display: true,
+                                text: 'Mean Squared Error'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Iterations'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Training Progress'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update parameter display values dynamically
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                document.getElementById(e.target.id + 'Value').textContent = e.target.value;
+            });
+        });
+
+        function selectMethod(event, method) {
+            currentMethod = method;
+            document.querySelectorAll('.method-selector button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const gdParams = document.getElementById('gdParams');
+            const trainButton = document.getElementById('trainButton');
+
+            if (method === 'linear-regression') {
+                gdParams.style.display = 'none';
+                trainButton.textContent = 'Fit Model';
+            } else {
+                gdParams.style.display = 'block';
+                trainButton.textContent = 'Train Model';
+                document.getElementById('batchSizeGroup').style.display =
+                    method === 'mini-batch' ? 'flex' : 'none';
+            }
+        }
+
+        function train() {
+            // Clear previous chart data
+            costChart.data.labels = [];
+            costChart.data.datasets[0].data = [];
+            costChart.update();
+
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const learningRate = parseFloat(document.getElementById('learningRate').value);
+            const batchSize = parseInt(document.getElementById('batchSize').value);
+
+            // Disable train button during training
+            const trainButton = document.getElementById('trainButton');
+            trainButton.disabled = true;
+            trainButton.textContent = 'Training...';
+
+            // Prepare the data to send to the server
+            const data = {
+                eta: learningRate,
+                n_iterations: iterations,
+                modo: currentMethod,
+                batch_size: batchSize
+            };
+
+            // Make the POST request to the Flask backend
+            fetch('/modules/gradient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(responseData => {
+                if (responseData.status === 'success') {
+                    const plotData = responseData.results.plot_data;
+
+                    // Extract the minimum cost value
+                    const minCost = Math.min(...plotData.map(point => point.cost));
+
+                    // Update chart with all data points
+                    costChart.data.labels = plotData.map(point => point.iteration);
+                    costChart.data.datasets[0].data = plotData.map(point => point.cost);
+                    costChart.options.plugins.title.text = `Training Progress (${currentMethod})`;
+
+                    // Dynamically update y-axis minimum value
+                    costChart.options.scales.y.min = minCost;
+
+                    costChart.update();
+
+                    // Re-enable train button
+                    trainButton.disabled = false;
+                    trainButton.textContent = 'Train Model';
+                } else {
+                    console.error('Error:', responseData.message);
+                    alert(`Training failed: ${responseData.message}`);
+                    trainButton.disabled = false;
+                    trainButton.textContent = 'Train Model';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during training.');
+                trainButton.disabled = false;
+                trainButton.textContent = 'Train Model';
+            });
+        }
+
+        // Ensure the chart initializes when the page loads
+        document.addEventListener('DOMContentLoaded', initChart);
+
+
+
+
+        // Send the features to the backend for prediction
+        function predict() {
+            // Obtenha os valores de entrada do usuário
+            const inputs = [
+                parseFloat(document.getElementById('fixedAcidity').value),
+                parseFloat(document.getElementById('volatileAcidity').value),
+                parseFloat(document.getElementById('citricAcid').value),
+                parseFloat(document.getElementById('residualSugar').value),
+                parseFloat(document.getElementById('chlorides').value),
+                parseFloat(document.getElementById('freeSulfurDioxide').value),
+                parseFloat(document.getElementById('totalSulfurDioxide').value),
+                parseFloat(document.getElementById('density').value),
+                parseFloat(document.getElementById('pH').value),
+                parseFloat(document.getElementById('sulphates').value),
+                parseFloat(document.getElementById('alcohol').value),
+            ];
+
+            // Enviar os dados para o backend para previsão
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ features: inputs })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Exibir previsões para todos os métodos
+                        document.getElementById('predictions').innerHTML = `
+                <strong>Predição de Qualidade do Vinho (escala 0-10):</strong><br>
+                Batch Gradient Descent: ${data.predictions.batch.toFixed(2)}<br>
+                Stochastic Gradient Descent: ${data.predictions.stochastic.toFixed(2)}<br>
+                Mini-Batch Gradient Descent: ${data.predictions.mini_batch.toFixed(2)}<br>
+                Regressão Linear: ${data.predictions.linear_regression.toFixed(2)}
+            `;
+                    } else {
+                        alert('Erro: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro ao tentar prever a qualidade do vinho.');
+                });
+        }
+
+
+        // Initialize the chart when the page loads
+        initChart();
+    </script>
+</body>
+
+</html>
