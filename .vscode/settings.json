@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "undefined/subscriptions/b71dab06-1060-4ced-81ff-4084af91d3ec/resourceGroups/appsvc_linux_centralus_basic/providers/Microsoft.Web/sites/app-wine",
+    "appService.deploySubpath": "."
+}
